@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quay Số May Mắn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-2:#f3f8fc;
+    --panel:#ffffff;
+    --panel-2:#eaf3fb;
+    --line:#d9e5ef;
+    --primary:rgba(15,117,189,0.95);
+    --primary-solid:#0f75bd;
+    --primary-bright:#3097da;
+    --primary-deep:#0b5a91;
+    --danger:#d1483f;
+    --text:#16232e;
+    --text-dim:#66788a;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(15,117,189,0.08), transparent 45%),
+      radial-gradient(ellipse at 90% 0%, rgba(15,117,189,0.05), transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Montserrat',sans-serif;
+    min-height:100vh;
+    font-size:18px;
+  }
+  .app-shell{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid var(--line);}
+  .brand-eyebrow{font-size:16px;letter-spacing:.22em;color:var(--primary-solid);text-transform:uppercase;font-weight:600;margin:0 0 4px;}
+  .brand-title{font-family:'Montserrat',sans-serif;font-size:49px;letter-spacing:.04em;margin:0;line-height:1;color:var(--text);font-weight:900;}
+  .brand-title span{color:var(--primary-solid);}
+  .header-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  button{font-family:'Montserrat',sans-serif;cursor:pointer;}
+  .btn{
+    border:1px solid var(--line);background:var(--panel);color:var(--text);
+    padding:10px 16px;border-radius:8px;font-size:18.5px;font-weight:600;
+    transition:border-color .15s, transform .1s, background .15s;
+  }
+  .btn:hover{border-color:var(--primary);background:var(--panel-2);}
+  .btn:active{transform:scale(.97);}
+  .btn-ghost{background:transparent;}
+  .btn-gold{background:linear-gradient(180deg,var(--primary-bright),var(--primary-solid));color:#ffffff;border:none;}
+  .btn-gold:hover{background: linear-gradient(180deg, #00cdfc, #0e71a7);}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+
+  .section-label{font-size:16px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);font-weight:600;margin:0 0 12px;}
+  .prize-strip{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:34px;}
+  .prize-group{display:flex;flex-direction:column;gap:8px;}
+  .prize-group-label{font-family:'Montserrat',sans-serif;font-size:23px;letter-spacing:.06em;color:var(--primary-solid);font-weight:700;}
+  .prize-cards-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .prize-card{
+    width:104px;min-height:70px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:8px 6px;position:relative;transition:border-color .15s, box-shadow .15s, transform .15s;
+    text-align:center;
+  }
+  .prize-card .q{font-size:27px;color:var(--text-dim);font-weight:600;}
+  .prize-card.empty{cursor:pointer;}
+  .prize-card.empty:hover{border-color:var(--primary);transform:translateY(-2px);}
+  .prize-card.selected{border-color:var(--primary);box-shadow:0 0 0 2px rgba(15,117,189,.28);}
+  .prize-card.selected::after{content:"ĐANG CHỌN";position:absolute;top:-9px;font-size:13.5px;letter-spacing:.08em;background:var(--primary);color:#ffffff;padding:2px 6px;border-radius:20px;font-weight:700;}
+  .prize-card.filled{border-color:var(--primary);background:linear-gradient(160deg,#eaf3fb,#dcebf8);}
+  .prize-card .num{font-family:'Montserrat',sans-serif;font-weight:600;font-size:21px;color:var(--primary-deep);word-break:break-all;}
+  .prize-card .tick{font-size:15px;color:var(--text-dim);margin-top:2px;}
+
+  .stage{
+    background:var(--bg-2);border:1px solid var(--line);border-radius:16px;
+    padding:32px 24px 26px;display:flex;flex-direction:column;align-items:center;gap:18px;
+    margin-bottom:30px;
+  }
+  .stage-target{font-size:18px;color:var(--text-dim);text-align:center;min-height:24px;}
+  .stage-target b{color:var(--primary-deep);font-weight:700;}
+  .reel-viewport{
+    position:relative;width:390px;height:510px;overflow:hidden;border-radius:16px;
+    background:linear-gradient(180deg,#eaf3fb,#ffffff 50%,#eaf3fb);
+    border:1px solid var(--line);
+    box-shadow:inset 0 0 24px rgba(15,117,189,.08);
+  }
+  .reel-viewport::before, .reel-viewport::after{
+    content:"";position:absolute;left:0;right:0;height:150px;z-index:3;pointer-events:none;
+  }
+  .reel-viewport::before{top:0;background:linear-gradient(180deg,#ffffff 10%, transparent);}
+  .reel-viewport::after{bottom:0;background:linear-gradient(0deg,#ffffff 10%, transparent);}
+  .reel-frame{
+    position:absolute;left:9px;right:9px;top:50%;height:102px;transform:translateY(-50%);
+    border:2px solid var(--primary);border-radius:11px;z-index:2;pointer-events:none;
+    box-shadow:0 0 18px rgba(15,117,189,.18), inset 0 0 12px rgba(15,117,189,.08);
+  }
+  .reel-strip{
+    position:absolute;left:0;right:0;top:0;
+    display:flex;flex-direction:column;
+    will-change:transform;
+    transition: none;
+  }
+  .reel-row{
+    height:102px;display:flex;align-items:center;justify-content:center;
+    font-family:'Montserrat',sans-serif;font-weight:600;font-size:44px;color:var(--text);
+    letter-spacing:.03em;
+    flex-shrink:0;
+    user-select:none;
+  }
+  .reel-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:18px;text-align:center;padding:20px;}
+
+  .spin-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;}
+  .btn-spin{font-family:'Montserrat',sans-serif;font-size:27px;letter-spacing:.06em;padding:14px 46px;border-radius:10px;font-weight:800;position:relative;overflow:hidden;}
+  .btn-spin::after{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
+    transform:translateX(-100%);
+    transition:transform 0.5s;
+  }
+  .btn-spin:hover::after{transform:translateX(100%);}
+  .remaining-count{font-size:17.5px;color:var(--text-dim);}
+
+  .results-panel{margin-bottom:20px;}
+  .results-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;}
+  .result-row{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 14px;font-size:18.5px;animation:slideIn 0.3s ease-out;}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-20px);}to{opacity:1;transform:translateX(0);}}
+  .result-row .n{font-family:'Montserrat',sans-serif;font-weight:600;color:var(--primary-deep);}
+  .result-row .p{color:var(--text-dim);}
+  .results-empty{color:var(--text-dim);font-size:18px;font-style:italic;}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(10,20,30,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-backdrop.open{display:flex;}
+  .modal-panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:520px;width:100%;max-height:86vh;overflow-y:auto;padding:22px;box-shadow:0 20px 50px rgba(15,117,189,.12);}
+  .modal-panel h2{font-family:'Montserrat',sans-serif;font-size:29px;letter-spacing:.03em;margin:0 0 4px;color:var(--primary-solid);font-weight:800;}
+  .modal-sub{font-size:17.5px;color:var(--text-dim);margin:0 0 18px;}
+  .prize-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .prize-row input[type=text]{flex:1;}
+  .prize-row input[type=number]{width:70px;}
+  input[type=text], input[type=number], textarea{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:7px;padding:9px 10px;font-family:'Montserrat',sans-serif;font-size:18.5px;outline:none;
+  }
+  input[type=text]:focus, input[type=number]:focus, textarea:focus{border-color:var(--primary);}
+  textarea{width:100%;min-height:160px;resize:vertical;line-height:1.5;}
+  .row-remove{background:transparent;border:none;color:var(--text-dim);font-size:22px;padding:4px 8px;cursor:pointer;}
+  .row-remove:hover{color:var(--danger);}
+  .quick-tiers{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 16px;}
+  .chip{font-size:16.5px;padding:6px 10px;border-radius:20px;border:1px dashed var(--line);background:transparent;color:var(--text-dim);cursor:pointer;}
+  .chip:hover{border-color:var(--primary);color:var(--primary-solid);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+  .congrats-overlay{position:fixed;inset:0;background:rgba(10,20,30,.5);display:none;align-items:center;justify-content:center;z-index:60;padding:20px;}
+  .congrats-overlay.open{display:flex;}
+  .congrats-card{
+    background:linear-gradient(160deg,#ffffff,#eaf3fb);border:1px solid var(--primary);border-radius:16px;
+    padding:40px 46px;text-align:center;max-width:420px;
+    box-shadow:0 0 60px rgba(15,117,189,.22);
+    animation:pop .35s cubic-bezier(.2,1.4,.4,1);
+  }
+  @keyframes pop{from{transform:scale(.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .congrats-emoji{font-size:43px;margin-bottom:6px;}
+  .congrats-card h3{font-family:'Montserrat',sans-serif;font-size:25px;letter-spacing:.05em;color:var(--text-dim);margin:0 0 10px;font-weight:400;}
+  .congrats-card .num{font-family:'Montserrat',sans-serif;font-size:47px;font-weight:600;color:var(--primary-deep);display:block;margin-bottom:6px;}
+  .congrats-card .prize{font-family:'Montserrat',sans-serif;font-size:31px;color:var(--text);letter-spacing:.03em;font-weight:700;}
+  .congrats-card .prize b{color:var(--primary-solid);}
+  #confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:70;}
+
+  footer{text-align:center;font-size:16.5px;color:var(--text-dim);margin-top:40px;}
+
+  @media(max-width:600px){
+    .brand-title{font-size:39px;}
+    .reel-viewport{width:100%;max-width:390px;}
+    body{font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<canvas id="confettiCanvas"></canvas>
+
+<div class="app-shell">
+  <header>
+    <div>
+      <h1 class="brand-title">QUAY SỐ <span>MAY MẮN</span></h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="openPrizeModal">🏆 Nhập giải thưởng</button>
+      <button class="btn" id="openPlayerModal">🎟️ Nhập số người chơi</button>
+      <button class="btn btn-ghost" id="resetAllBtn">↺ Làm lại từ đầu</button>
+    </div>
+  </header>
+
+  <p class="section-label">Giải thưởng</p>
+  <div class="prize-strip" id="prizeStrip"></div>
+
+  <div class="stage">
+    <div class="stage-target" id="stageTarget"></div>
+    <div class="reel-viewport">
+      <div class="reel-frame"></div>
+      <div class="reel-strip" id="reelStrip"></div>
+    </div>
+    <div class="spin-row">
+      <button class="btn btn-gold btn-spin" id="spinBtn">🎰 QUAY SỐ</button>
+    </div>
+    <div class="remaining-count" id="remainingCount"></div>
+  </div>
+
+  <div class="results-panel">
+    <p class="section-label">🏅 Kết quả đã quay</p>
+    <div class="results-list" id="resultsList"></div>
+  </div>
+
+  <footer>💡 Bấm vào một ô giải còn trống để chọn quay riêng cho giải đó — mặc định sẽ quay từ Khuyến khích lên Nhất.</footer>
+</div>
+
+<!-- Prize modal -->
+<div class="modal-backdrop" id="prizeModal">
+  <div class="modal-panel">
+    <h2>🏆 Nhập giải thưởng</h2>
+    <p class="modal-sub">Đặt tên giải và số lượng. Các giải cùng tên sẽ tự xếp cạnh nhau.</p>
+    <div class="quick-tiers" id="quickTiers"></div>
+    <div id="prizeRows"></div>
+    <button class="btn btn-ghost" id="addPrizeRowBtn" style="width:100%;margin-top:4px;">+ Thêm dòng giải</button>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelPrizeModal">Hủy</button>
+      <button class="btn btn-gold" id="savePrizeModal">Lưu giải thưởng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Player modal -->
+<div class="modal-backdrop" id="playerModal">
+  <div class="modal-panel">
+    <h2>🎟️ Nhập số người chơi</h2>
+    <p class="modal-sub">Mỗi dòng (hoặc phân cách bằng dấu phẩy) là một số thứ tự.</p>
+    <textarea id="playerTextarea" placeholder="Ví dụ:&#10;001&#10;002&#10;003&#10;..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelPlayerModal">Hủy</button>
+      <button class="btn btn-gold" id="savePlayerModal">Lưu danh sách</button>
+    </div>
+  </div>
+</div>
+
+<!-- Congrats overlay -->
+<div class="congrats-overlay" id="congratsOverlay">
+  <div class="congrats-card">
+    <div class="congrats-emoji">🎉</div>
+    <h3>Chúc mừng bạn số</h3>
+    <span class="num" id="congratsNum">000</span>
+    <div class="prize">đã trúng giải <b id="congratsPrize">—</b></div>
+    <button class="btn btn-gold" id="closeCongrats" style="margin-top:20px;">Tuyệt vời!</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- State ---------- */
+  var prizes = [];
+  var slots = [];
+  var allNumbers = [];
+  var pool = [];
+  var currentTargetId = null;
+  var spinning = false;
+  var slotSeq = 0;
+
+  var ROW_H = 102;
+  var VISIBLE_ROWS = 5;
+
+  var KNOWN_TIERS = ["Đặc biệt","Nhất","Nhì","Ba","Tư","Năm","Sáu","Bảy","Tám","Chín","Mười"];
+
+  function rankOf(name){
+    var n = (name||"").trim().toLowerCase();
+    for (var i=0;i<KNOWN_TIERS.length;i++){
+      if (KNOWN_TIERS[i].toLowerCase() === n) return i;
+    }
+    if (/khuyến\s*kh[íi]ch/i.test(name||"")) return 900;
+    return 500;
+  }
+
+  /* ---------- DOM refs ---------- */
+  var $ = function(id){ return document.getElementById(id); };
+  var prizeStripEl = $("prizeStrip");
+  var reelStripEl = $("reelStrip");
+  var stageTargetEl = $("stageTarget");
+  var remainingCountEl = $("remainingCount");
+  var resultsListEl = $("resultsList");
+  var spinBtn = $("spinBtn");
+
+  /* ---------- Slot / prize logic ---------- */
+  function buildSlotsFromPrizes(){
+    slots = [];
+    prizes.forEach(function(p){
+      for (var i=0;i<p.qty;i++){
+        slots.push({ id: "slot-"+(slotSeq++), name: p.name, filled:false, winner:null });
+      }
+    });
+    currentTargetId = null;
+  }
+
+  function groupedForDisplay(){
+    var order = [];
+    var map = {};
+    slots.forEach(function(s){
+      if (!map[s.name]){ map[s.name] = []; order.push(s.name); }
+      map[s.name].push(s);
+    });
+    var names = order.slice().sort(function(a,b){ return rankOf(a) - rankOf(b); });
+    return names.map(function(n){ return { name:n, list: map[n] }; });
+  }
+
+  function drawOrderSlots(){
+    return slots
+      .filter(function(s){ return !s.filled; })
+      .slice()
+      .sort(function(a,b){ return rankOf(b.name) - rankOf(a.name); });
+  }
+
+  function nextAutoTarget(){
+    var arr = drawOrderSlots();
+    return arr.length ? arr[0] : null;
+  }
+
+  function getTargetSlot(){
+    if (currentTargetId){
+      var s = slots.find(function(x){ return x.id === currentTargetId && !x.filled; });
+      if (s) return s;
+    }
+    return nextAutoTarget();
+  }
+
+  /* ---------- Rendering ---------- */
+  function renderPrizeStrip(){
+    prizeStripEl.innerHTML = "";
+    var groups = groupedForDisplay();
+    if (!groups.length){
+      prizeStripEl.innerHTML = '<div class="results-empty">Chưa có giải thưởng nào — bấm "Nhập giải thưởng" để bắt đầu.</div>';
+      return;
+    }
+    groups.forEach(function(g){
+      var wrap = document.createElement("div");
+      wrap.className = "prize-group";
+      var label = document.createElement("div");
+      label.className = "prize-group-label";
+      label.textContent = g.name;
+      wrap.appendChild(label);
+      var row = document.createElement("div");
+      row.className = "prize-cards-row";
+      g.list.forEach(function(slot){
+        var card = document.createElement("div");
+        card.className = "prize-card " + (slot.filled ? "filled" : "empty");
+        if (!slot.filled && currentTargetId === slot.id) card.className += " selected";
+        if (slot.filled){
+          card.innerHTML = '<div class="num">'+escapeHtml(slot.winner)+'</div><div class="tick">✓ đã trúng</div>';
+        } else {
+          card.innerHTML = '<div class="q">?</div>';
+          card.addEventListener("click", function(){
+            if (spinning) return;
+            currentTargetId = (currentTargetId === slot.id) ? null : slot.id;
+            renderPrizeStrip();
+            renderStageTarget();
+          });
+        }
+        row.appendChild(card);
+      });
+      wrap.appendChild(row);
+      prizeStripEl.appendChild(wrap);
+    });
+  }
+
+  function renderStageTarget(){
+    var t = getTargetSlot();
+    if (!t){
+      stageTargetEl.innerHTML = slots.length ? "🎊 Đã quay hết tất cả các giải!" : "Hãy nhập giải thưởng để bắt đầu.";
+    } else {
+      stageTargetEl.innerHTML = "🎯 Đang quay cho giải: <b>"+escapeHtml(t.name)+"</b>" + (currentTargetId ? " (đã chọn thủ công)" : "");
+    }
+  }
+
+  function renderRemaining(){
+    remainingCountEl.textContent = "📊 Còn lại " + pool.length + " / " + allNumbers.length + " số người chơi";
+  }
+
+  function renderResults(){
+    var filled = slots.filter(function(s){ return s.filled; });
+    if (!filled.length){
+      resultsListEl.innerHTML = '<div class="results-empty">Chưa có kết quả nào.</div>';
+      return;
+    }
+    resultsListEl.innerHTML = "";
+    filled.forEach(function(s){
+      var row = document.createElement("div");
+      row.className = "result-row";
+      row.innerHTML = '<span class="n">'+escapeHtml(s.winner)+'</span><span class="p">'+escapeHtml(s.name)+'</span>';
+      resultsListEl.appendChild(row);
+    });
+  }
+
+  function renderIdleReel(){
+    reelStripEl.style.transition = 'none';
+    reelStripEl.style.transform = "translateY(0)";
+    reelStripEl.innerHTML = "";
+    if (!pool.length){
+      reelStripEl.innerHTML = '<div class="reel-empty" style="height:'+(ROW_H*VISIBLE_ROWS)+'px;">'+(allNumbers.length ? "🎊 Đã quay hết số!" : "Chưa có số người chơi nào")+'</div>';
+      return;
+    }
+    var preview = shuffle(pool.slice()).slice(0, VISIBLE_ROWS);
+    while (preview.length < VISIBLE_ROWS) preview.push("");
+    preview.forEach(function(n){
+      var row = document.createElement("div");
+      row.className = "reel-row";
+      row.style.height = ROW_H+"px";
+      row.textContent = n;
+      row.style.opacity = n ? "0.55" : "0";
+      reelStripEl.appendChild(row);
+    });
+  }
+
+  function renderAll(){
+    renderPrizeStrip();
+    renderStageTarget();
+    renderRemaining();
+    renderResults();
+    renderIdleReel();
+    updateSpinBtn();
+  }
+
+  function updateSpinBtn(){
+    var canSpin = !spinning && pool.length > 0 && getTargetSlot() != null;
+    spinBtn.disabled = !canSpin;
+    spinBtn.textContent = spinning ? '🔄 ĐANG QUAY...' : '🎰 QUAY SỐ';
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function shuffle(arr){
+    for (var i = arr.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function getRandomInt(min, max) {
+    if (window.crypto && window.crypto.getRandomValues) {
+      var array = new Uint32Array(1);
+      window.crypto.getRandomValues(array);
+      return min + (array[0] % (max - min + 1));
+    }
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function superShuffle(arr) {
+    var result = arr.slice();
+    for (var i = result.length - 1; i > 0; i--) {
+      var j = getRandomInt(0, i);
+      var tmp = result[i];
+      result[i] = result[j];
+      result[j] = tmp;
+    }
+    return result;
+  }
+
+  /* ---------- Spin với hiệu ứng chậm dần siêu mượt ---------- */
+  function spin(){
+    if (spinning) return;
+    var target = getTargetSlot();
+    if (!target || !pool.length) return;
+    spinning = true;
+    updateSpinBtn();
+
+    // Chọn người thắng
+    var winner = pool[getRandomInt(0, pool.length - 1)];
+
+    // Tạo chuỗi số hiển thị
+    var poolCopy = pool.slice();
+    if (!poolCopy.includes(winner)) {
+      poolCopy.push(winner);
+    }
+    
+    // Xáo trộn cực mạnh
+    var shuffled = superShuffle(poolCopy);
+    
+    // Tạo danh sách hiển thị dài để quay lâu
+    var totalItems = 80 + getRandomInt(0, 40);
+    var displayList = [];
+    
+    while (displayList.length < totalItems) {
+      var chunk = shuffled.slice();
+      if (displayList.length > 0) {
+        chunk = superShuffle(chunk);
+      }
+      displayList = displayList.concat(chunk);
+    }
+    
+    // Đảm bảo winner ở vị trí cuối cùng
+    var winnerIndex = displayList.indexOf(winner);
+    if (winnerIndex === -1) {
+      displayList.push(winner);
+      winnerIndex = displayList.length - 1;
+    }
+    
+    // Đảm bảo winner ở vị trí hiển thị đẹp (giữa khung)
+    var targetIndex = Math.max(2, winnerIndex - 2);
+    if (targetIndex > displayList.length - VISIBLE_ROWS) {
+      var newIndex = displayList.length - VISIBLE_ROWS + 2;
+      var temp = displayList[winnerIndex];
+      displayList[winnerIndex] = displayList[newIndex];
+      displayList[newIndex] = temp;
+      winnerIndex = newIndex;
+      targetIndex = winnerIndex - 2;
+    }
+
+    // Render
+    reelStripEl.innerHTML = "";
+    var fragment = document.createDocumentFragment();
+    displayList.forEach(function(n){
+      var row = document.createElement("div");
+      row.className = "reel-row";
+      row.style.height = ROW_H+"px";
+      row.textContent = n;
+      fragment.appendChild(row);
+    });
+    reelStripEl.appendChild(fragment);
+
+    // Vị trí bắt đầu và kết thúc
+    var startIndex = Math.max(0, displayList.length - VISIBLE_ROWS);
+    var startY = -(startIndex * ROW_H);
+    var endY = -(targetIndex * ROW_H);
+
+    // Reset
+    reelStripEl.style.transition = 'none';
+    reelStripEl.style.transform = 'translateY(' + startY + 'px)';
+    void reelStripEl.offsetHeight;
+
+    // Animation với easing siêu mượt
+    var duration = 4500 + getRandomInt(0, 1500);
+    var startTime = performance.now();
+    var startPos = startY;
+    var endPos = endY;
+    var delta = endPos - startPos;
+
+    // Hàm easing chậm dần hoàn hảo - không bị giật
+    function easeInOutCubic(t) {
+      return 1 - Math.pow(1 - t, 2.5);
+    }
+
+    function animateReel(timestamp) {
+      var elapsed = timestamp - startTime;
+      var progress = Math.min(elapsed / duration, 1);
+      
+      var ease = easeInOutCubic(progress);
+      
+      // Thêm hiệu ứng rung nhẹ ở giai đoạn cuối (90-99%)
+      if (progress > 0.90 && progress < 0.995) {
+        var shakeIntensity = (progress - 0.90) / 0.095;
+        var shake = Math.sin(progress * 150) * 0.8 * (1 - shakeIntensity);
+        ease += shake * 0.003;
+        ease = Math.min(Math.max(ease, 0), 1);
+      }
+      
+      var currentPos = startPos + delta * ease;
+      
+      reelStripEl.style.transform = 'translateY(' + currentPos + 'px)';
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateReel);
+      } else {
+        reelStripEl.style.transform = 'translateY(' + endPos + 'px)';
+        finishSpin(target, winner);
+      }
+    }
+
+    requestAnimationFrame(animateReel);
+  }
+
+  function finishSpin(target, winner){
+    target.filled = true;
+    target.winner = winner;
+    pool = pool.filter(function(n){ return n !== winner; });
+    currentTargetId = null;
+    spinning = false;
+
+    renderAll();
+    showCongrats(winner, target.name);
+  }
+
+  function showCongrats(num, prizeName){
+    $("congratsNum").textContent = num;
+    $("congratsPrize").textContent = prizeName;
+    $("congratsOverlay").classList.add("open");
+    fireConfetti();
+  }
+
+  function fireConfetti(){
+    if (typeof confetti !== "function") return;
+    var canvas = $("confettiCanvas");
+    var myConfetti = confetti.create(canvas, { resize:true, useWorker:true });
+    var colors = ["#0f75bd","#3097da","#0b5a91","#8fc4ea","#f0c040","#e85d5d","#4CAF50","#FF6B6B"];
+    myConfetti({ particleCount:150, spread:100, origin:{ y:0.3 }, colors:colors, startVelocity:50 });
+    setTimeout(function(){
+      myConfetti({ particleCount:80, angle:60, spread:80, origin:{ x:0, y:0.5 }, colors:colors });
+      myConfetti({ particleCount:80, angle:120, spread:80, origin:{ x:1, y:0.5 }, colors:colors });
+    }, 250);
+    setTimeout(function(){
+      myConfetti({ particleCount:60, spread:60, origin:{ y:0.6 }, colors:colors, startVelocity:30 });
+    }, 500);
+  }
+
+  /* ---------- Prize modal ---------- */
+  var prizeModal = $("prizeModal");
+  var prizeRowsEl = $("prizeRows");
+  var quickTiersEl = $("quickTiers");
+
+  function addPrizeRow(name, qty){
+    var row = document.createElement("div");
+    row.className = "prize-row";
+    row.innerHTML =
+      '<input type="text" class="p-name" placeholder="Tên giải (VD: Nhất)" value="'+escapeHtml(name||"")+'">' +
+      '<input type="number" class="p-qty" min="1" value="'+(qty||1)+'">' +
+      '<button type="button" class="row-remove" title="Xóa dòng">✕</button>';
+    row.querySelector(".row-remove").addEventListener("click", function(){ row.remove(); });
+    prizeRowsEl.appendChild(row);
+  }
+
+  ["Nhất","Nhì","Ba","Tư","Khuyến khích"].forEach(function(tier){
+    var chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.textContent = "+ " + tier;
+    chip.addEventListener("click", function(){ addPrizeRow(tier, tier==="Khuyến khích" ? 5 : 1); });
+    quickTiersEl.appendChild(chip);
+  });
+
+  function openPrizeModal(){
+    prizeRowsEl.innerHTML = "";
+    if (prizes.length){
+      prizes.forEach(function(p){ addPrizeRow(p.name, p.qty); });
+    } else {
+      addPrizeRow("Nhất", 1);
+      addPrizeRow("Nhì", 2);
+      addPrizeRow("Ba", 1);
+      addPrizeRow("Tư", 1);
+      addPrizeRow("Khuyến khích", 5);
+    }
+    prizeModal.classList.add("open");
+  }
+
+  $("openPrizeModal").addEventListener("click", openPrizeModal);
+  $("cancelPrizeModal").addEventListener("click", function(){ prizeModal.classList.remove("open"); });
+  $("addPrizeRowBtn").addEventListener("click", function(){ addPrizeRow("", 1); });
+
+  $("savePrizeModal").addEventListener("click", function(){
+    var rows = Array.prototype.slice.call(prizeRowsEl.querySelectorAll(".prize-row"));
+    var next = [];
+    rows.forEach(function(r){
+      var name = r.querySelector(".p-name").value.trim();
+      var qty = parseInt(r.querySelector(".p-qty").value, 10) || 0;
+      if (name && qty > 0) next.push({ name:name, qty:qty });
+    });
+    if (!next.length){
+      alert("Vui lòng nhập ít nhất một giải thưởng hợp lệ.");
+      return;
+    }
+    var hasProgress = slots.some(function(s){ return s.filled; });
+    if (hasProgress && !confirm("Đang có kết quả đã quay. Lưu giải thưởng mới sẽ xóa toàn bộ kết quả hiện tại. Tiếp tục?")){
+      return;
+    }
+    prizes = next;
+    buildSlotsFromPrizes();
+    prizeModal.classList.remove("open");
+    renderAll();
+  });
+
+  /* ---------- Player modal ---------- */
+  var playerModal = $("playerModal");
+  var playerTextarea = $("playerTextarea");
+
+  $("openPlayerModal").addEventListener("click", function(){
+    playerTextarea.value = allNumbers.join("\n");
+    playerModal.classList.add("open");
+  });
+  $("cancelPlayerModal").addEventListener("click", function(){ playerModal.classList.remove("open"); });
+
+  $("savePlayerModal").addEventListener("click", function(){
+    var raw = playerTextarea.value || "";
+    var parts = raw.split(/[\n,;]+/).map(function(s){ return s.trim(); }).filter(Boolean);
+    var seen = {};
+    var deduped = [];
+    parts.forEach(function(p){ if (!seen[p]){ seen[p]=true; deduped.push(p); } });
+    if (!deduped.length){
+      alert("Vui lòng nhập ít nhất một số người chơi.");
+      return;
+    }
+    var hasProgress = slots.some(function(s){ return s.filled; });
+    if (hasProgress && !confirm("Đang có kết quả đã quay. Lưu danh sách số mới sẽ xóa toàn bộ kết quả hiện tại. Tiếp tục?")){
+      return;
+    }
+    allNumbers = deduped;
+    pool = deduped.slice();
+    slots.forEach(function(s){ s.filled = false; s.winner = null; });
+    currentTargetId = null;
+    playerModal.classList.remove("open");
+    renderAll();
+  });
+
+  /* ---------- Misc controls ---------- */
+  spinBtn.addEventListener("click", spin);
+
+  $("closeCongrats").addEventListener("click", function(){
+    $("congratsOverlay").classList.remove("open");
+  });
+
+  $("resetAllBtn").addEventListener("click", function(){
+    if (!confirm("Xóa toàn bộ giải thưởng, danh sách số và kết quả để bắt đầu lại?")) return;
+    prizes = []; slots = []; allNumbers = []; pool = []; currentTargetId = null; spinning = false;
+    renderAll();
+  });
+
+  [prizeModal, playerModal].forEach(function(m){
+    m.addEventListener("click", function(e){ if (e.target === m) m.classList.remove("open"); });
+  });
+
+  /* ---------- Init ---------- */
+  renderAll();
+})();
+</script>
+</body>
+</html>
