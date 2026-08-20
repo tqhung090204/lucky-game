@@ -480,44 +480,31 @@
     // Chọn người thắng
     var winner = pool[getRandomInt(0, pool.length - 1)];
 
-    // Tạo chuỗi số hiển thị
+    // Tạo chuỗi số hiển thị: nối nhiều "lượt" xáo trộn của toàn bộ pool lại với nhau.
+    // Số trúng luôn có mặt trong mỗi lượt (vì nó vẫn còn trong pool lúc này).
     var poolCopy = pool.slice();
-    if (!poolCopy.includes(winner)) {
-      poolCopy.push(winner);
+    var chunkSize = poolCopy.length;
+
+    // Cần đủ số lượt PHÍA TRƯỚC để dải băng chạy lâu, và vài lượt PHÍA SAU để có
+    // hàng đệm sau số trúng. Tính theo số hàng (không phải số lượt) để luôn đúng
+    // dù danh sách người chơi ít hay nhiều.
+    var lapsBefore = Math.max(16, Math.ceil((160 + getRandomInt(0, 60)) / chunkSize));
+    var lapsAfter = 3;
+    var totalLaps = lapsBefore + 1 + lapsAfter; // +1 là lượt chứa số trúng sẽ dừng lại
+
+    var laps = [];
+    for (var lap = 0; lap < totalLaps; lap++){
+      laps.push(superShuffle(poolCopy));
     }
-    
-    // Xáo trộn cực mạnh
-    var shuffled = superShuffle(poolCopy);
-    
-    // Tạo danh sách hiển thị dài để quay lâu
-    var totalItems = 80 + getRandomInt(0, 40);
+
+    var landingLapIndex = lapsBefore; // lượt sẽ chứa số trúng khi dừng
+    var posInLandingLap = laps[landingLapIndex].indexOf(winner); // luôn tìm được, vì winner nằm trong poolCopy
+
     var displayList = [];
-    
-    while (displayList.length < totalItems) {
-      var chunk = shuffled.slice();
-      if (displayList.length > 0) {
-        chunk = superShuffle(chunk);
-      }
-      displayList = displayList.concat(chunk);
-    }
-    
-    // Đảm bảo winner ở vị trí cuối cùng
-    var winnerIndex = displayList.indexOf(winner);
-    if (winnerIndex === -1) {
-      displayList.push(winner);
-      winnerIndex = displayList.length - 1;
-    }
-    
-    // Đảm bảo winner ở vị trí hiển thị đẹp (giữa khung)
-    var targetIndex = Math.max(2, winnerIndex - 2);
-    if (targetIndex > displayList.length - VISIBLE_ROWS) {
-      var newIndex = displayList.length - VISIBLE_ROWS + 2;
-      var temp = displayList[winnerIndex];
-      displayList[winnerIndex] = displayList[newIndex];
-      displayList[newIndex] = temp;
-      winnerIndex = newIndex;
-      targetIndex = winnerIndex - 2;
-    }
+    laps.forEach(function(lapArr){ displayList = displayList.concat(lapArr); });
+
+    var winnerIndex = landingLapIndex * chunkSize + posInLandingLap;
+    var targetIndex = winnerIndex - 2; // số trúng sẽ hiện ở hàng giữa (hàng thứ 3/5)
 
     // Render
     reelStripEl.innerHTML = "";
@@ -542,7 +529,7 @@
     void reelStripEl.offsetHeight;
 
     // Animation với easing siêu mượt
-    var duration = 4500 + getRandomInt(0, 1500);
+    var duration = 6000 + getRandomInt(0, 2000);
     var startTime = performance.now();
     var startPos = startY;
     var endPos = endY;
