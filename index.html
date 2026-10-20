@@ -460,6 +460,10 @@
   .stage-ctl{display:flex;justify-content:center;min-width:0;width:100%;padding:0;margin-top:-30px;position:relative;z-index:3;}
   .spin-btn.locked{font-size:15px;letter-spacing:.06em;padding:16px 34px;}
   @media (max-width:940px){ .robot .img{width:170px!important;} .stage-ctl{margin-top:-20px;} }
+  /* Thanh kim luôn giữ màu vàng */
+  .reel-pointer,body.tension .reel-pointer,.reel-frame.done .reel-pointer{background:var(--gold);box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 18px rgba(255,194,26,.95);}
+  .reel-pointer::before,body.tension .reel-pointer::before,.reel-frame.done .reel-pointer::before{border-top-color:var(--gold);}
+  .reel-pointer::after,body.tension .reel-pointer::after,.reel-frame.done .reel-pointer::after{border-bottom-color:var(--gold);}
 </style>
 </head>
 <body>
@@ -516,7 +520,7 @@
 
 <div class="footer-band">
   <div class="values">
-    <span>Học thật</span><span>Làm thật</span><span>Sống thật</span><span>Tạo giá trị thật</span><span class="make">Made by HKT</span>
+    <span>Học thật</span><span>Làm thật</span><span>Sống thật</span><span>Tạo giá trị thật</span><span class="make">Make by HKT</span>
   </div>
   <div class="addr">HKT Smart Tower · Lô 5 Trần Quý Hai, Tây Nha Trang, Khánh Hòa</div>
 </div>
@@ -547,7 +551,14 @@
   /* ========= CẤU HÌNH ========= */
   // Link Google Sheet mặc định. Mỗi lần mở / F5 trang là tải lại dữ liệu mới nhất và bắt đầu lại từ lượt quay #1.
   const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/10gJLQWo1AMAzgckar1Kj6ArVM2gyMS7kZxh7_NH1wbc/edit?gid=576999031#gid=576999031";
-  const DEFAULT_SHEET_TAB = "";   // để trống = dùng tab đầu tiên
+  const DEFAULT_SHEET_TAB = "";   // để trống = dùng tab đầu tiên (hoặc tab theo gid trong link)
+
+  /* ===== TỰ CHỈNH HIỆU ỨNG TẠI ĐÂY ===== */
+  const SWAY_PX  = 70;     // thanh kim lắc qua lại mỗi bên bao nhiêu px khi đang xoay
+  const SWAY_MS  = 4000;   // chu kỳ lắc (ms): 1300 = 1,3 giây cho một vòng trái-phải
+  const SPIN_MS  = 15400;  // tổng thời gian thẻ chạy (ms)
+  const HOLD_MS  = 1;    // khoảng dừng ngắn (ms) giữa lúc thẻ dừng và lúc kim bắt đầu trượt ở đoạn kịch tính cuối
+  const GLIDE_MS = 4000;   // thời gian kim trượt chậm sang ô bên cạnh ở cuối vòng (ms)
 
   /* ========= State ========= */
   let boardMsg='Đang tải dữ liệu từ Google Sheet...';
@@ -586,7 +597,7 @@
 
   /* ========= Robot nói chuyện ========= */
   const IDLE_W=["Xin chào! HKT sẵn sàng quay thưởng 🎉","Bấm quay thôi, may mắn đang chờ bạn!","Ai sẽ là người may mắn đây?","Học thật – Làm thật – Sống thật!","Mình là mascot của HKT Solutions đây! 👍"];
-  const IDLE_G=["Mình lo khâu giao quà nhé!","Chúc mọi người thật nhiều may mắn!","Driving Technology – Delivering Value","Made by HKT 💙"];
+  const IDLE_G=["Mình lo khâu giao quà nhé!","Chúc mọi người thật nhiều may mắn!","Driving Technology – Delivering Value","Make by HKT 💙"];
   let idleI=0;
   function say(el,text){ if(!el||el.textContent===text) return; el.classList.add('swap'); setTimeout(()=>{ el.textContent=text; el.classList.remove('swap'); },200); }
   setInterval(()=>{
@@ -707,7 +718,7 @@
   // Giải trúng đã được bốc theo tỉ lệ trong Sheet; phần "đổi ô" ở cuối chỉ là hiệu ứng kịch tính:
   //   33% kim dừng đúng ô trúng · 33% kim dừng ở ô SAU rồi giật sang TRÁI vào ô trúng · 33% kim dừng ở ô TRƯỚC rồi giật sang PHẢI vào ô trúng
   async function runReel(winnerName){
-    const {cw,step,W}=metrics(), pool=namePool(), T=15400;
+    const {cw,step,W}=metrics(), pool=namePool(), T=SPIN_MS;
     const scenario=['stay','left','right'][Math.min(2,Math.floor(rand01()*3))];
     const items=[...reelItems], tx0=reelTx;
     const F=140+Math.floor(Math.random()*18);
@@ -727,6 +738,8 @@
       function f(now){
         const p=Math.min(1,(now-t0)/T), e=1-Math.pow(1-p,4.4), tx=tx0+(txEnd-tx0)*e;
         setTx(tx);
+        const env=p<.78?1:Math.max(0,1-(p-.78)/.2), env2=env*env*(3-2*env);          // êm dần về 0 trước khi dừng
+        ptr.style.translate=`${(SWAY_PX*env2*Math.sin(2*Math.PI*(now-t0)/SWAY_MS)).toFixed(2)}px 0`;   // kim trượt qua lại một chút
         const dt=Math.max(1,now-lastT), v=Math.abs(tx-lastTx)/dt*1000;
         strip.style.filter=v>2500?`blur(${Math.min(2.2,v/6000).toFixed(2)}px)`:'none'; lastTx=tx; lastT=now;
         const ci=Math.max(0,Math.min(items.length-1,centerIndex(tx,W,step)));
@@ -738,18 +751,32 @@
       }
       requestAnimationFrame(f);
     });
-    strip.style.filter='none';
+    strip.style.filter='none'; ptr.style.translate='0 0';
     stopMusic(350);                                                    // xoay xong → tắt nhạc
 
     // Khoảnh khắc nghẹt thở: kim rung nhẹ trên ô "tưởng trúng" (giống nhau ở cả 3 trường hợp)
-    ptr.classList.add('tremble'); heartbeat(); await sleep(650); heartbeat(); await sleep(650);
+    ptr.classList.add('tremble'); heartbeat(); await sleep(HOLD_MS);
     ptr.classList.remove('tremble');
     const shift=scenario==='left'?-step:(scenario==='right'?step:0);
-    ptr.style.transition='translate .16s cubic-bezier(.2,1.8,.4,1)';
-    if(shift){ ptr.style.translate=`${shift}px 0`; }
-    else { ptr.style.translate='7px 0'; setTimeout(()=>{ ptr.style.translate='0 0'; },90); }
-    markCenter(wi); noise(.3,.22); tone(130,.3,'sawtooth',.14);
-    await sleep(500);
+    // Kim di chuyển CHẦM CHẬM sang ô bên cạnh (hoặc chớm lệch rồi quay lại nếu "đứng yên") — cùng thời lượng ở cả 3 trường hợp
+    const dir=shift?Math.sign(shift):(rand01()<.5?-1:1);
+    const crossAt=scenario==='left'?cw/2+jitter:cw/2-jitter;          // quãng kim phải đi để rời ô "tưởng trúng"
+    const crossDir=cw/2-dir*jitter, peak=Math.min(step*.42,crossDir*.85);
+    ptr.style.transition='none'; heartbeat(); setTimeout(heartbeat,1200);
+    await new Promise(res=>{
+      const t0=performance.now(); let marked=false, toned=false;
+      const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;               // easeInOutCubic: chậm - nhanh nhẹ - chậm
+      function g(now){
+        const p=Math.min(1,(now-t0)/GLIDE_MS), e=ease(p); let pos;
+        if(shift){ pos=shift*e; if(!marked&&Math.abs(pos)>=crossAt){ marked=true; markCenter(wi); tone(520,.18,'triangle',.1); } }
+        else { pos=dir*peak*Math.sin(Math.PI*e); if(!toned&&p>=.5){ toned=true; tone(520,.18,'triangle',.1); } }
+        ptr.style.translate=`${pos}px 0`;
+        if(p<1) requestAnimationFrame(g); else res();
+      }
+      requestAnimationFrame(g);
+    });
+    ptr.style.translate=`${shift}px 0`; markCenter(wi); noise(.18,.12); tone(130,.25,'sawtooth',.1);
+    await sleep(450);
 
     // Chốt vị trí: đưa kim về giữa và dời dải thẻ tương ứng (hình ảnh không đổi), rồi cắt gọn dải thẻ
     ptr.style.transition='none'; ptr.style.translate='0 0';
