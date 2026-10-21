@@ -477,9 +477,8 @@
            onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'logo-fallback',textContent:'HKT'}))">
     </div>
     <div>
-      <span class="event-name" contenteditable="true" spellcheck="false" title="Bấm để sửa tên chương trình">HKT Solutions · Year End Party</span>
+      <span class="event-name" contenteditable="true" spellcheck="false" title="Bấm để sửa tên chương trình">HKT Solutions ·</span>
       <h1>QUAY THƯỞNG<br>MAY MẮN</h1>
-      <div class="tagline">Driving Technology – Delivering Value</div>
     </div>
   </div>
 </div>
@@ -520,7 +519,7 @@
 
 <div class="footer-band">
   <div class="values">
-    <span>Học thật</span><span>Làm thật</span><span>Sống thật</span><span>Tạo giá trị thật</span><span class="make">Make by HKT</span>
+    <span>Học thật</span><span>Làm thật</span><span>Sống thật</span><span>Tạo giá trị thật</span><span class="make">Made by HKT</span>
   </div>
   <div class="addr">HKT Smart Tower · Lô 5 Trần Quý Hai, Tây Nha Trang, Khánh Hòa</div>
 </div>
@@ -554,11 +553,12 @@
   const DEFAULT_SHEET_TAB = "";   // để trống = dùng tab đầu tiên (hoặc tab theo gid trong link)
 
   /* ===== TỰ CHỈNH HIỆU ỨNG TẠI ĐÂY ===== */
-  const SWAY_PX  = 70;     // thanh kim lắc qua lại mỗi bên bao nhiêu px khi đang xoay
+  const SWAY_PX  = 50;     // thanh kim lắc qua lại mỗi bên bao nhiêu px khi đang xoay
   const SWAY_MS  = 4000;   // chu kỳ lắc (ms): 1300 = 1,3 giây cho một vòng trái-phải
   const SPIN_MS  = 15400;  // tổng thời gian thẻ chạy (ms)
   const HOLD_MS  = 1;    // khoảng dừng ngắn (ms) giữa lúc thẻ dừng và lúc kim bắt đầu trượt ở đoạn kịch tính cuối
-  const GLIDE_MS = 4000;   // thời gian kim trượt chậm sang ô bên cạnh ở cuối vòng (ms)
+  const INSIDE_PX = 14;    // kim chỉ nhích vào bên trong ô trúng bấy nhiêu px (tính từ mép ô) rồi dừng, KHÔNG đi tới tâm ô
+  const GLIDE_MS = 2000;   // thời gian kim trượt chậm sang ô bên cạnh ở cuối vòng (ms)
 
   /* ========= State ========= */
   let boardMsg='Đang tải dữ liệu từ Google Sheet...';
@@ -597,7 +597,7 @@
 
   /* ========= Robot nói chuyện ========= */
   const IDLE_W=["Xin chào! HKT sẵn sàng quay thưởng 🎉","Bấm quay thôi, may mắn đang chờ bạn!","Ai sẽ là người may mắn đây?","Học thật – Làm thật – Sống thật!","Mình là mascot của HKT Solutions đây! 👍"];
-  const IDLE_G=["Mình lo khâu giao quà nhé!","Chúc mọi người thật nhiều may mắn!","Driving Technology – Delivering Value","Make by HKT 💙"];
+  const IDLE_G=["Mình lo khâu giao quà nhé!","Chúc mọi người thật nhiều may mắn!","Driving Technology – Delivering Value","Made by HKT 💙"];
   let idleI=0;
   function say(el,text){ if(!el||el.textContent===text) return; el.classList.add('swap'); setTimeout(()=>{ el.textContent=text; el.classList.remove('swap'); },200); }
   setInterval(()=>{
@@ -757,10 +757,12 @@
     // Khoảnh khắc nghẹt thở: kim rung nhẹ trên ô "tưởng trúng" (giống nhau ở cả 3 trường hợp)
     ptr.classList.add('tremble'); heartbeat(); await sleep(HOLD_MS);
     ptr.classList.remove('tremble');
-    const shift=scenario==='left'?-step:(scenario==='right'?step:0);
+    // Chỉ nhích vừa đủ để kim lọt vào ô trúng (cách mép ô INSIDE_PX), không đi tới tâm ô
+    const gapPx=step-cw;
+    const shift=scenario==='left'?-(cw/2+jitter+gapPx+INSIDE_PX):(scenario==='right'?(cw/2-jitter+gapPx+INSIDE_PX):0);
     // Kim di chuyển CHẦM CHẬM sang ô bên cạnh (hoặc chớm lệch rồi quay lại nếu "đứng yên") — cùng thời lượng ở cả 3 trường hợp
     const dir=shift?Math.sign(shift):(rand01()<.5?-1:1);
-    const crossAt=scenario==='left'?cw/2+jitter:cw/2-jitter;          // quãng kim phải đi để rời ô "tưởng trúng"
+    const crossAt=(scenario==='left'?cw/2+jitter:cw/2-jitter)+gapPx;          // quãng kim phải đi để rời ô "tưởng trúng"
     const crossDir=cw/2-dir*jitter, peak=Math.min(step*.42,crossDir*.85);
     ptr.style.transition='none'; heartbeat(); setTimeout(heartbeat,1200);
     await new Promise(res=>{
